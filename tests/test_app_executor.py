@@ -49,5 +49,3 @@ def test_killall(tmpdir, caplog):
         app_exec.run('Sleep3', 'sleep 50')
 
     assert ['Finishing Sleep1', 'Finishing Sleep2', 'Finishing Sleep3'] == [rec.message for rec in caplog.records]
-
-
