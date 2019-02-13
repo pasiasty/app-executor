@@ -44,7 +44,7 @@ class Process:
             import sys
             with open('/dev/null', 'r') as stdin:
 
-                os.dup2(stdin.fileno(), sys.stdin.fileno())
+                os.dup2(stdin.fileno(), 0)
                 os.dup2(self.outfd.fileno(), sys.stdout.fileno())
                 os.dup2(self.outfd.fileno(), sys.stderr.fileno())
 
