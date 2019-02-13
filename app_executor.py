@@ -19,16 +19,16 @@ class AppExecutor:
         for p_name, p_object in self.child_processes.items():
             if p_object.is_alive():
                 logging.info('Finishing {}'.format(p_name))
-                p_object.finish_gracefully()
+                p_object._finish_gracefully()
 
-            p_object.analyze_core_dump()
+            p_object._analyze_core_dump()
 
     def run(self, alias, cmd):
         if alias in self.child_processes:
             raise Exception('Duplicating alias: {}'.format(alias))
 
         new_process = Process(alias, cmd, self.context_dir)
-        new_process.run()
+        new_process._run()
 
         self.child_processes[alias] = new_process
 
