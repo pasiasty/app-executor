@@ -44,6 +44,9 @@ class Process:
             import sys
             with open('/dev/null', 'r') as stdin:
 
+                old_stdout = os.dup(sys.stdout.fileno())
+                old_stderr = os.dup(sys.stderr.fileno())
+
                 os.dup2(stdin.fileno(), 0)
                 os.dup2(self.outfd.fileno(), sys.stdout.fileno())
                 os.dup2(self.outfd.fileno(), sys.stderr.fileno())
@@ -60,7 +63,11 @@ class Process:
                     gdb_log.write(gdb_cmd + '\n\n')
 
                 os.system(gdb_cmd)
-                exit(0)
+
+                self.outfd.flush()
+                os.dup2(old_stdout, sys.stdout.fileno())
+                os.dup2(old_stderr, sys.stderr.fileno())
+                os._exit(0)
         else:
             logging.info('Process {} PID: {} cmd: {}'.format(
                 self.name, self.pid, ' '.join([self.exec_name, self.args])))
