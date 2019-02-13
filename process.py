@@ -1,9 +1,8 @@
 import os
 import shutil
-import signal
 import logging
-import time
 import re
+import subprocess
 
 
 class Process:
@@ -26,51 +25,29 @@ class Process:
         self.name = name
         self.context_dir = os.path.join(parent_context_dir, name)
         self.exec_name, self.args = Process.parse_cmd(cmd)
-        self.pid = None
 
         if os.path.isdir(self.context_dir):
             shutil.rmtree(self.context_dir)
         os.makedirs(self.context_dir)
 
+        self.popen = None
         self.outfd = None
 
     def run(self):
-        self.pid = os.fork()
         self.outfd = open(self.get_log_path(), 'w')
 
-        if self.pid < 0:
-            raise Exception('Process {}: fork failed!'.format(self.name))
-        elif self.pid == 0:
-            import sys
-            with open('/dev/null', 'r') as stdin:
+        gdb_cmd = 'gdb -batch-silent -ex "set pagination off" -ex "set logging file {gdb_log_path}" ' \
+                  '-ex "set logging on" -ex "run {args}" ' \
+                  '-ex "generate-core-file {dump_path}" {exec_name}' \
+            .format(exec_name=self.exec_name,
+                    args=self.args,
+                    gdb_log_path=self._get_gdb_log_path(),
+                    dump_path=self._get_core_dump_path())
 
-                old_stdout = os.dup(sys.stdout.fileno())
-                old_stderr = os.dup(sys.stderr.fileno())
+        with open(self._get_gdb_log_path(), 'w') as gdb_log:
+            gdb_log.write(gdb_cmd + '\n\n')
 
-                os.dup2(stdin.fileno(), 0)
-                os.dup2(self.outfd.fileno(), sys.stdout.fileno())
-                os.dup2(self.outfd.fileno(), sys.stderr.fileno())
-
-                gdb_cmd = 'gdb -batch-silent -ex "set pagination off" -ex "set logging file {gdb_log_path}" ' \
-                          '-ex "set logging on" -ex "run {args}" ' \
-                          '-ex "generate-core-file {dump_path}" {exec_name}' \
-                    .format(exec_name=self.exec_name,
-                            args=self.args,
-                            gdb_log_path=self._get_gdb_log_path(),
-                            dump_path=self._get_core_dump_path())
-
-                with open(self._get_gdb_log_path(), 'w') as gdb_log:
-                    gdb_log.write(gdb_cmd + '\n\n')
-
-                os.system(gdb_cmd)
-
-                self.outfd.flush()
-                os.dup2(old_stdout, sys.stdout.fileno())
-                os.dup2(old_stderr, sys.stderr.fileno())
-                os._exit(0)
-        else:
-            logging.info('Process {} PID: {} cmd: {}'.format(
-                self.name, self.pid, ' '.join([self.exec_name, self.args])))
+        self.popen = subprocess.Popen(gdb_cmd, shell=True, stdout=self.outfd, stderr=self.outfd)
 
     def get_log_path(self):
         return os.path.join(self.context_dir, 'log.txt')
@@ -85,22 +62,16 @@ class Process:
         return os.path.join(self.context_dir, 'stacktrace.txt')
 
     def is_alive(self):
-        if self.pid is None:
-            raise Exception('Process {} was never ran'.format(self.name))
+        if self.popen is None:
+            raise Exception('Checking for being alive on not-launched process')
 
-        try:
-            os.kill(self.pid, 0)
-            os.waitpid(self.pid, os.WNOHANG)
-            os.kill(self.pid, 0)
-        except OSError:
-            return False
-        return True
+        return self.popen.poll() is None
 
     def terminate(self):
-        os.kill(self.pid, signal.SIGTERM)
+        self.popen.terminate()
 
     def kill(self):
-        os.kill(self.pid, signal.SIGKILL)
+        self.popen.kill()
 
     def get_rc(self):
         if self.is_alive():
@@ -114,15 +85,11 @@ class Process:
         return int(m.group(1))
 
     def wait(self, timeout=5, silent=False):
-        time_elapsed = 0
-
-        while self.is_alive() and (timeout == 0 or time_elapsed < timeout):
-            time_elapsed += 0.1
-            time.sleep(0.1)
-
-        if self.is_alive():
+        try:
+            self.popen.wait(timeout)
+        except subprocess.TimeoutExpired:
             if not silent:
-                logging.error('Process {}: timeout reached for PID {}'.format(self.name, self.pid))
+                logging.error('Process {}: timeout reached'.format(self.name))
             return False
 
         return True
@@ -138,9 +105,8 @@ class Process:
         if self.wait(timeout, silent=True):
             return
         self.outfd.flush()
-        if self.pid:
+        if self.popen:
             if self.is_alive():
                 self.terminate()
             if self.is_alive():
                 self.kill()
-        os.waitpid(self.pid, 0)

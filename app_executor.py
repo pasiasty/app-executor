@@ -23,7 +23,7 @@ class AppExecutor:
 
             p_object.analyze_core_dump()
 
-    def run(self, cmd, alias):
+    def run(self, alias, cmd):
         if alias in self.child_processes:
             raise Exception('Duplicating alias: '.format(alias))
 
