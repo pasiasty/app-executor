@@ -25,12 +25,14 @@ class AppExecutor:
 
     def run(self, alias, cmd):
         if alias in self.child_processes:
-            raise Exception('Duplicating alias: '.format(alias))
+            raise Exception('Duplicating alias: {}'.format(alias))
 
         new_process = Process(alias, cmd, self.context_dir)
         new_process.run()
 
         self.child_processes[alias] = new_process
+
+        return new_process
 
     def _get_process_object(self, alias):
         if alias not in self.child_processes:
@@ -51,4 +53,4 @@ class AppExecutor:
         self._get_process_object(alias).get_rc()
 
     def get_logfile(self, alias):
-        return open(self._get_process_object(alias).get_log_path(), 'r').read()
+        return self._get_process_object(alias).get_logfile()

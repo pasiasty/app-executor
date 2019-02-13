@@ -34,7 +34,7 @@ class Process:
         self.outfd = None
 
     def run(self):
-        self.outfd = open(self.get_log_path(), 'w')
+        self.outfd = open(self._get_log_path(), 'w')
 
         gdb_cmd = 'gdb -batch-silent -ex "set pagination off" -ex "set logging file {gdb_log_path}" ' \
                   '-ex "set logging on" -ex "run {args}" ' \
@@ -49,7 +49,7 @@ class Process:
 
         self.popen = subprocess.Popen(gdb_cmd, shell=True, stdout=self.outfd, stderr=self.outfd)
 
-    def get_log_path(self):
+    def _get_log_path(self):
         return os.path.join(self.context_dir, 'log.txt')
 
     def _get_gdb_log_path(self):
@@ -110,3 +110,6 @@ class Process:
                 self.terminate()
             if self.is_alive():
                 self.kill()
+
+    def get_logfile(self):
+        return open(self._get_log_path(), 'r').read()
