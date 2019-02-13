@@ -112,4 +112,4 @@ class Process:
                 self.kill()
 
     def get_logfile(self):
-        return open(self._get_log_path(), 'r').read()
+        return open(self._get_log_path(), 'r').read().strip()

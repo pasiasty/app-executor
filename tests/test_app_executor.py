@@ -6,8 +6,9 @@ import getpass
 
 def test_simple_run(executor):
     executor.run('Whoami', 'whoami')
-    executor.wait('Whoami', 10)
-    assert getpass.getuser() == executor.get_logfile('Whoami').strip()
+    process = executor.get_process('Whoami')
+    process.wait(10)
+    assert getpass.getuser() == process.get_logfile()
 
 
 def test_alias_conflict(executor):
@@ -21,27 +22,7 @@ def test_alias_conflict(executor):
 
 def test_nonexisting_alias(executor):
     with pytest.raises(Exception) as excinfo:
-        executor.wait('Sleep')
-
-    assert 'Alias Sleep not found!' in str(excinfo.value)
-
-    with pytest.raises(Exception) as excinfo:
-        executor.terminate('Sleep')
-
-    assert 'Alias Sleep not found!' in str(excinfo.value)
-
-    with pytest.raises(Exception) as excinfo:
-        executor.kill('Sleep')
-
-    assert 'Alias Sleep not found!' in str(excinfo.value)
-
-    with pytest.raises(Exception) as excinfo:
-        executor.get_rc('Sleep')
-
-    assert 'Alias Sleep not found!' in str(excinfo.value)
-
-    with pytest.raises(Exception) as excinfo:
-        executor.get_logfile('Sleep')
+        executor.get_process('Sleep')
 
     assert 'Alias Sleep not found!' in str(excinfo.value)
 

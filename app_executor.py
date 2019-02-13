@@ -34,23 +34,8 @@ class AppExecutor:
 
         return new_process
 
-    def _get_process_object(self, alias):
+    def get_process(self, alias):
         if alias not in self.child_processes:
             raise Exception('Alias {} not found!'.format(alias))
 
         return self.child_processes[alias]
-
-    def wait(self, alias, timeout=0):
-        self._get_process_object(alias).wait(timeout)
-
-    def terminate(self, alias):
-        self._get_process_object(alias).terminate()
-
-    def kill(self, alias):
-        self._get_process_object(alias).kill()
-
-    def get_rc(self, alias):
-        self._get_process_object(alias).get_rc()
-
-    def get_logfile(self, alias):
-        return self._get_process_object(alias).get_logfile()
