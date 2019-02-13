@@ -9,10 +9,10 @@ import re
 class Process:
     @staticmethod
     def parse_cmd(cmd):
-        m = re.search(r'^"(.*?[^\\])"(.*)', cmd)
+        m = re.search(r'^(".*?[^\\]")(.*)', cmd)
 
         if m is None:
-            m = re.search(r'^\'(.*?[^\\])\'(.*)', cmd)
+            m = re.search(r'^(\'.*?[^\\]\')(.*)', cmd)
             if m is None:
                 arr = cmd.split(' ')
                 if len(arr) == 1:
@@ -74,6 +74,9 @@ class Process:
     def _get_core_dump_path(self):
         return os.path.join(self.context_dir, 'core_dump.bin')
 
+    def _get_stacktrace_path(self):
+        return os.path.join(self.context_dir, 'stacktrace.txt')
+
     def is_alive(self):
         if self.pid is None:
             raise Exception('Process {} was never ran'.format(self.name))
@@ -116,6 +119,13 @@ class Process:
             return False
 
         return True
+
+    def analyze_core_dump(self):
+        if os.path.isfile(self._get_core_dump_path()):
+            os.system('gdb {exec_path} {core_dump_path} -batch -ex "where" '
+                      '-ex "thread apply all bt" > {stacktrace_path} 2>&1'
+                      .format(exec_path=self.exec_name, core_dump_path=self._get_core_dump_path(),
+                              stacktrace_path=self._get_stacktrace_path()))
 
     def finish_gracefully(self, timeout=1):
         if self.wait(timeout, silent=True):

@@ -16,7 +16,12 @@ class AppExecutor:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.kill_all_processes()
+        for p_name, p_object in self.child_processes.items():
+            if p_object.is_alive():
+                logging.info('Finishing {}'.format(p_name))
+                p_object.finish_gracefully()
+
+            p_object.analyze_core_dump()
 
     def run(self, cmd, alias):
         if alias in self.child_processes:
@@ -26,12 +31,6 @@ class AppExecutor:
         new_process.run()
 
         self.child_processes[alias] = new_process
-
-    def kill_all_processes(self):
-        for p_name, p_object in self.child_processes.items():
-            if p_object.is_alive():
-                logging.info('Finishing {}'.format(p_name))
-                p_object.finish_gracefully()
 
     def _get_process_object(self, alias):
         if alias not in self.child_processes:
