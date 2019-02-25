@@ -21,7 +21,7 @@ setuptools.setup(
     author_email="pasiasty@gmail.com",
     description="Tool for safe launching external processes",
     entry_points={"pytest11": ["app_executor = app_executor.conftest"]},
-    url="EMPTY",
+    url="https://github.com/pasiasty/app-executor",
     packages=setuptools.find_packages(),
     install_requires=dependencies(),
     long_description=readme(),
