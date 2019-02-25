@@ -9,6 +9,11 @@ def dependencies():
     return open(requirements_path, 'r').read().splitlines()
 
 
+def readme():
+    with open(os.path.join(os.getcwd(), 'README.md')) as f:
+        return f.read()
+
+
 setuptools.setup(
     name="app_executor",
     version='1.0.0',
@@ -18,6 +23,8 @@ setuptools.setup(
     url="EMPTY",
     packages=setuptools.find_packages(),
     install_requires=dependencies(),
+    long_description=readme(),
+    long_description_content_type="text/markdown",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
