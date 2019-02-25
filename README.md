@@ -63,3 +63,21 @@ with app_executor.AppExecutor('/some/path') as executor:
     # ...
 
 ```
+
+### `executor` fixture
+
+Together with installing `app_executor` package `executor` pytest fixture becomes
+available. It creates `app_executor.AppExecutor` and passes `tmpdir` as work
+directory to it. On fixture teardown all spawned processes are stopped.
+
+```python
+
+def test_some_executing(executor):
+    p1 = executor.run('whoami')
+    p2 = executor.run('sleep 1')
+
+    # ...
+    # operations on p1 and p2 app_executor.Process objects
+    # ...
+
+```
