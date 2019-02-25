@@ -3,5 +3,9 @@ venv
 .cache
 __pycache__
 
+app_executor.egg-info/
+build/
+dist/
+
 executions
 
