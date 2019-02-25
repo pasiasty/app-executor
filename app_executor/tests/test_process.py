@@ -20,7 +20,6 @@ def test_simple_run(tmpdir):
 
 def test_always_failing_command(tmpdir):
     with app_executor.Process('MyFail', 'false', tmpdir) as my_fail_process:
-        my_fail_process.run()
         my_fail_process.wait()
         assert 1 == my_fail_process.get_rc()
 
