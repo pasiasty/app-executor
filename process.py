@@ -7,7 +7,7 @@ import subprocess
 
 class Process:
     @staticmethod
-    def _parse_cmd(cmd):
+    def parse_cmd(cmd):
         m = re.search(r'^(".*?[^\\]")(.*)', cmd)
 
         if m is None:
@@ -21,10 +21,18 @@ class Process:
 
         return m.group(1), m.group(2)
 
+    def __enter__(self):
+        self.run()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()
+        self.analyze_core_dump()
+
     def __init__(self, name, cmd, parent_context_dir):
         self.name = name
         self.context_dir = os.path.join(parent_context_dir, name)
-        self.exec_name, self.args = Process._parse_cmd(cmd)
+        self.exec_name, self.args = Process.parse_cmd(cmd)
 
         if os.path.isdir(self.context_dir):
             shutil.rmtree(self.context_dir)
@@ -69,7 +77,7 @@ class Process:
     def get_logfile(self):
         return open(self._get_log_path(), 'r').read().strip()
 
-    def _run(self):
+    def run(self):
         self.outfd = open(self._get_log_path(), 'w')
 
         gdb_cmd = 'gdb -batch-silent -ex "set pagination off" -ex "set logging file {gdb_log_path}" ' \
@@ -85,6 +93,23 @@ class Process:
 
         self.popen = subprocess.Popen(gdb_cmd, shell=True, stdout=self.outfd, stderr=self.outfd)
 
+    def analyze_core_dump(self):
+        if os.path.isfile(self._get_core_dump_path()):
+            os.system('gdb {exec_path} {core_dump_path} -batch -ex "where" '
+                      '-ex "thread apply all bt" > {stacktrace_path} 2>&1'
+                      .format(exec_path=self.exec_name, core_dump_path=self._get_core_dump_path(),
+                              stacktrace_path=self._get_stacktrace_path()))
+
+    def stop(self, timeout=1):
+        if self.wait(timeout, silent=True):
+            return
+        self.outfd.flush()
+        if self.popen:
+            if self.is_alive():
+                self.terminate()
+            if self.is_alive():
+                self.kill()
+
     def _get_log_path(self):
         return os.path.join(self.context_dir, 'log.txt')
 
@@ -96,20 +121,3 @@ class Process:
 
     def _get_stacktrace_path(self):
         return os.path.join(self.context_dir, 'stacktrace.txt')
-
-    def _analyze_core_dump(self):
-        if os.path.isfile(self._get_core_dump_path()):
-            os.system('gdb {exec_path} {core_dump_path} -batch -ex "where" '
-                      '-ex "thread apply all bt" > {stacktrace_path} 2>&1'
-                      .format(exec_path=self.exec_name, core_dump_path=self._get_core_dump_path(),
-                              stacktrace_path=self._get_stacktrace_path()))
-
-    def _finish_gracefully(self, timeout=1):
-        if self.wait(timeout, silent=True):
-            return
-        self.outfd.flush()
-        if self.popen:
-            if self.is_alive():
-                self.terminate()
-            if self.is_alive():
-                self.kill()

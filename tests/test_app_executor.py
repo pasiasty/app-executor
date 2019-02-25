@@ -5,17 +5,17 @@ import getpass
 
 
 def test_simple_run(executor):
-    executor.run('Whoami', 'whoami')
+    executor.run('whoami', 'Whoami')
     process = executor.get_process('Whoami')
     process.wait(10)
     assert getpass.getuser() == process.get_logfile()
 
 
 def test_alias_conflict(executor):
-    executor.run('Sleep', 'sleep 1')
+    executor.run('sleep 1', 'Sleep')
 
     with pytest.raises(Exception) as excinfo:
-        executor.run('Sleep', 'sleep 5')
+        executor.run('sleep 5', 'Sleep')
 
     assert 'Duplicating alias: Sleep' in str(excinfo.value)
 
@@ -28,15 +28,15 @@ def test_nonexisting_alias(executor):
 
 
 def test_always_failing_command(executor):
-    my_fail_process = executor.run('MyFail', 'false')
+    my_fail_process = executor.run('false')
     my_fail_process.wait()
     assert 1 == my_fail_process.get_rc()
 
 
 def test_wait(executor):
-    process = executor.run('Sleep1', 'sleep 1')
+    process = executor.run('sleep 1')
     assert process.wait(2)
-    process = executor.run('Sleep5', 'sleep 5')
+    process = executor.run('sleep 5')
     assert not process.wait(1, silent=True)
 
 
@@ -44,8 +44,21 @@ def test_killall(tmpdir, caplog):
     caplog.set_level(logging.INFO)
 
     with app_executor.AppExecutor(tmpdir) as app_exec:
-        app_exec.run('Sleep1', 'sleep 50')
-        app_exec.run('Sleep2', 'sleep 50')
-        app_exec.run('Sleep3', 'sleep 50')
+        app_exec.run('sleep 50')
+        app_exec.run('sleep 50')
+        app_exec.run('sleep 50')
 
-    assert ['Finishing Sleep1', 'Finishing Sleep2', 'Finishing Sleep3'] == [rec.message for rec in caplog.records]
+    assert ['Finishing process_1', 'Finishing process_2', 'Finishing process_3'] == [rec.message for rec in
+                                                                                     caplog.records]
+
+
+def test_auto_aliases(executor):
+    p1 = executor.run('whoami')
+    p2 = executor.run('whoami', 'Whoami')
+    p3 = executor.run('whoami')
+    p4 = executor.run('whoami')
+
+    assert 'process_1' == p1.name
+    assert 'Whoami' == p2.name
+    assert 'process_2' == p3.name
+    assert 'process_3' == p4.name
