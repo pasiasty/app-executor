@@ -10,13 +10,14 @@ def dependencies():
 
 
 def readme():
-    with open(os.path.join(os.getcwd(), 'README.md')) as f:
+    this_directory = os.path.abspath(os.path.dirname(__file__))
+    with open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
         return f.read()
 
 
 setuptools.setup(
     name="app_executor",
-    version='1.0.0',
+    version='1.0.1',
     author="Mariusz Pasek",
     author_email="pasiasty@gmail.com",
     description="Tool for safe launching external processes",
