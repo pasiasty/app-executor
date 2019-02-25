@@ -20,6 +20,7 @@ setuptools.setup(
     author="Mariusz Pasek",
     author_email="pasiasty@gmail.com",
     description="Tool for safe launching external processes",
+    entry_points={"pytest11": ["app_executor = app_executor.conftest"]},
     url="EMPTY",
     packages=setuptools.find_packages(),
     install_requires=dependencies(),
