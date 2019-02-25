@@ -1,7 +1,7 @@
 import logging
 import os
 import re
-from process import Process
+from app_executor.process import Process
 
 
 class AppExecutor:
