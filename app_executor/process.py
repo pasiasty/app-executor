@@ -6,6 +6,12 @@ import subprocess
 
 
 class Process:
+    """
+    Class used for managing invoking command. It lets to interact with spawned process,
+    i.e.: waiting for it to finish, getting stdout and stderr of it and performing dump
+    analysis.
+    """
+
     @staticmethod
     def parse_cmd(cmd):
         m = re.search(r'^(".*?[^\\]")(.*)', cmd)
@@ -30,6 +36,12 @@ class Process:
         self.analyze_core_dump()
 
     def __init__(self, name, cmd, parent_context_dir):
+        """
+        :param name: name of the process - processes directory will be named the same, this name will
+        also occur in warning/error prints
+        :param cmd: command to be executed
+        :param parent_context_dir: directory in which process's directory should be created
+        """
         self.name = name
         self.context_dir = os.path.join(parent_context_dir, name)
         self.exec_name, self.args = Process.parse_cmd(cmd)
@@ -42,18 +54,33 @@ class Process:
         self.outfd = None
 
     def is_alive(self):
+        """
+        :return: True if process is still alive, False otherwise
+        """
         if self.popen is None:
             raise Exception('Checking for being alive on not-launched process')
 
         return self.popen.poll() is None
 
     def terminate(self):
+        """
+        :return: attempts to terminate process
+        """
         self.popen.terminate()
 
     def kill(self):
+        """
+        :return: attempts to kill process
+        """
         self.popen.kill()
 
     def get_rc(self):
+        """
+        used for getting result code of executed process. It throws an exception if
+        called prematurely.
+        :return: result code of the command
+        """
+
         if self.is_alive():
             raise Exception('Process {}: Getting rc before process completion!'.format(self.name))
 
@@ -65,6 +92,14 @@ class Process:
         return int(m.group(1))
 
     def wait(self, timeout=5, silent=False):
+        """
+        Waits for the process to finish.
+
+        :param timeout: timeout for waiting
+        :param silent: if set to True it will not produce error print on failure
+        :return: True if process finished in given timeout, False otherwise
+        """
+
         try:
             self.popen.wait(timeout)
         except subprocess.TimeoutExpired:
@@ -75,9 +110,15 @@ class Process:
         return True
 
     def get_logfile(self):
+        """
+        :return: gets output (stdout and stderr combined) of executed process
+        """
         return open(self._get_log_path(), 'r').read().strip()
 
     def run(self):
+        """
+        Runs the command
+        """
         self.outfd = open(self._get_log_path(), 'w')
 
         gdb_cmd = 'gdb -batch-silent -ex "set pagination off" -ex "set logging file {gdb_log_path}" ' \
@@ -94,6 +135,9 @@ class Process:
         self.popen = subprocess.Popen(gdb_cmd, shell=True, stdout=self.outfd, stderr=self.outfd)
 
     def analyze_core_dump(self):
+        """
+        Performs dump analysis if it has been collected.
+        """
         if os.path.isfile(self._get_core_dump_path()):
             os.system('gdb {exec_path} {core_dump_path} -batch -ex "where" '
                       '-ex "thread apply all bt" > {stacktrace_path} 2>&1'
@@ -101,6 +145,11 @@ class Process:
                               stacktrace_path=self._get_stacktrace_path()))
 
     def stop(self, timeout=1):
+        """
+        Makes sure that processes is not running anymore after running this function.
+        It first tries to wait for it, then terminate it and if that still fails - kill it.
+        """
+
         if self.wait(timeout, silent=True):
             return
         self.outfd.flush()
