@@ -12,7 +12,7 @@ def readme():
 
 setuptools.setup(
     name="app_executor",
-    version='1.0.3',
+    version='1.0.4',
     author="Mariusz Pasek",
     author_email="pasiasty@gmail.com",
     description="Tool for safe launching external processes",

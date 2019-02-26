@@ -86,7 +86,7 @@ class Process:
 
         gdb_log = open(self._get_gdb_log_path(), 'r').read()
 
-        if re.match(r'\[Inferior [1-9][0-9]* \(process [1-9][0-9]*\) exited normally\]', gdb_log):
+        if re.search(r'\[Inferior [1-9][0-9]* \(process [1-9][0-9]*\) exited normally\]', gdb_log):
             return 0
         m = re.search(r'\[Inferior [1-9][0-9]* \(process [1-9][0-9]*\) exited with code ([0-9]+)\]', gdb_log)
         return int(m.group(1))
